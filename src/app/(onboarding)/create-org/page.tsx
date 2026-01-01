@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { getCurrentProfile, getCurrentUser } from '@/lib/auth';
+import { isAdminLike } from '@/lib/rbac';
 
 import CreateOrgForm from './CreateOrgForm';
 
@@ -9,7 +10,8 @@ export default async function CreateOrgPage() {
   if (!user) redirect('/login');
 
   const profile = await getCurrentProfile();
-  if (profile?.org_id) redirect('/dashboard');
+  if (!profile) redirect('/no-access');
+  if (!isAdminLike(profile.role)) redirect('/home');
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-6 p-6">

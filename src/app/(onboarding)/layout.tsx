@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 import { getCurrentProfile, getCurrentUser } from '@/lib/auth';
 
 export default async function OnboardingLayout({

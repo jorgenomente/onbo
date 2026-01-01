@@ -11,7 +11,7 @@ export default async function AssignmentsPage() {
   if (!user) redirect('/login');
 
   const profile = await getCurrentProfile();
-  if (!profile || !profile.org_id) redirect('/create-org');
+  if (!profile || !profile.org_id) redirect('/no-access');
 
   const supabase = await createSupabaseServerClient();
   const assignmentsQuery = supabase

@@ -71,8 +71,8 @@ export async function toggleLessonCompleted(
         user_id: user.id,
         module_id: parsed.data.module_id,
         lesson_id: parsed.data.lesson_id,
-        status: 'completed',
-        completed_at: new Date().toISOString(),
+        status: 'done',
+        updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id,lesson_id' },
     );

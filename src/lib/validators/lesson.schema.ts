@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const lessonSchema = z.object({
   title: z.string().trim().min(2).max(120),
-  content_json: z.record(z.unknown()).optional(),
+  content_json: z.record(z.string(), z.unknown()).optional(),
   order_index: z.number().int().min(0).optional(),
 });
 

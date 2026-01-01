@@ -16,6 +16,24 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Supabase Auth URLs (Dev/Prod)
+
+Email links (invite/recovery) require allowed redirect URLs to avoid `otp_expired`.
+
+Supabase Auth settings:
+
+- Site URL:
+  - Dev: `http://localhost:3000`
+  - Prod: `https://<tu-dominio>`
+- Redirect URLs:
+  - `http://localhost:3000/auth/callback`
+  - `https://<tu-dominio>/auth/callback`
+
+Env vars (local):
+
+- `NEXT_PUBLIC_APP_URL=http://localhost:3000`
+  - If you use `NEXT_PUBLIC_SITE_URL`, keep it in sync.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

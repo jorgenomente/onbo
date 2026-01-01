@@ -59,11 +59,18 @@ export async function createOrganization(
     return { error: orgError.message || 'No se pudo crear la organización.' };
   }
 
+  if (!data.user.email && process.env.NODE_ENV !== 'production') {
+    console.log('[create-org] missing user email for profile', {
+      userId: data.user.id,
+    });
+  }
+
   const { error: profileError } = await supabase.from('profiles').upsert(
     {
       user_id: data.user.id,
       org_id: org.id,
       role: 'org_admin',
+      email: data.user.email ?? null,
     },
     { onConflict: 'user_id' },
   );

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export default function LoginForm() {
+export default function LoginForm({ nextPath }: { nextPath?: string }) {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 
@@ -34,7 +34,7 @@ export default function LoginForm() {
       return;
     }
 
-    router.push('/dashboard');
+    router.push(nextPath ?? '/home');
     router.refresh();
   }
 
@@ -43,7 +43,7 @@ export default function LoginForm() {
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold">Iniciar sesión</h1>
         <p className="text-sm text-muted-foreground">
-          Accedé a tu workspace de Onbo.
+          Accedé con tu email y contraseña.
         </p>
       </div>
 
@@ -70,11 +70,19 @@ export default function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            minLength={8}
             placeholder="••••••••"
           />
         </div>
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <a href="/auth/forgot-password" className="hover:text-foreground">
+            ¿Olvidaste tu contraseña?
+          </a>
+          <p>Si tu cuenta fue invitada, usá este link para crear tu contraseña.</p>
+        </div>
 
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? 'Ingresando…' : 'Ingresar'}
