@@ -20,6 +20,7 @@ export default function SetPasswordClient() {
   const nextParam = searchParams.get('next');
   const safeNext =
     nextParam && nextParam.startsWith('/') ? nextParam : '/home';
+  const isInviteFlow = safeNext.includes('/auth/accept-invite?token=');
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -191,11 +192,17 @@ export default function SetPasswordClient() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 px-4">
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">Crear contraseña</h1>
+        <h1 className="text-2xl font-semibold">
+          {isInviteFlow
+            ? 'Configurar contraseña y aceptar invitación'
+            : 'Crear contraseña'}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          {inviteId
-            ? 'Creá tu contraseña y uníte al workspace.'
-            : 'Elegí una nueva contraseña.'}
+          {isInviteFlow
+            ? 'Estás aceptando una invitación a tu workspace. Cuando confirmes tu contraseña, te vamos a llevar al local.'
+            : inviteId
+              ? 'Creá tu contraseña y uníte al workspace.'
+              : 'Elegí una nueva contraseña.'}
         </p>
       </div>
 

@@ -31,6 +31,14 @@ export async function acceptGroupLocationInvite(token: string): Promise<AcceptIn
   const adminClient = createServiceRoleClient();
   const normalizedEmail = user.email.toLowerCase().trim();
 
+  const profileRoleForLocation = (role: string | null) => {
+    if (role === 'trainer') {
+      return 'trainer';
+    }
+    return 'employee';
+  };
+  const profileRoleForGroup = () => 'org_admin';
+
   const { data: locationInvite } = await adminClient
     .from('location_invites')
     .select('id, location_id, email, status, role')
@@ -71,6 +79,16 @@ export async function acceptGroupLocationInvite(token: string): Promise<AcceptIn
         email: normalizedEmail,
       },
       { onConflict: 'group_id,user_id' },
+    );
+
+    await adminClient.from('profiles').upsert(
+      {
+        user_id: user.id,
+        org_id: null,
+        role: profileRoleForLocation(locationInvite.role),
+        full_name: null,
+      },
+      { onConflict: 'user_id' },
     );
 
     const { error: membershipError } = await adminClient
@@ -132,6 +150,16 @@ export async function acceptGroupLocationInvite(token: string): Promise<AcceptIn
       email: normalizedEmail,
     },
     { onConflict: 'group_id,user_id' },
+  );
+
+  await adminClient.from('profiles').upsert(
+    {
+      user_id: user.id,
+      org_id: null,
+      role: profileRoleForGroup(),
+      full_name: null,
+    },
+    { onConflict: 'user_id' },
   );
 
   await adminClient

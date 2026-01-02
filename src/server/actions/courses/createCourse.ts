@@ -36,6 +36,7 @@ export async function createCourse(
     title: formData.get('title'),
     description: formData.get('description') || null,
     interval_days_default: Number(formData.get('interval_days_default')),
+    status: formData.get('status') || 'active',
   });
 
   if (!parsed.success) {
@@ -43,19 +44,38 @@ export async function createCourse(
   }
 
   const supabase = await createSupabaseServerClient();
+  const payload = {
+    org_id: profile.org_id,
+    title: parsed.data.title,
+    description: parsed.data.description,
+    interval_days_default: parsed.data.interval_days_default,
+    status: parsed.data.status ?? 'active',
+  };
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[courses][create]', {
+      userId: profile.user_id,
+      orgId: profile.org_id,
+      payload,
+    });
+    console.trace('[courses][create] stack');
+  }
+
   const { data, error } = await supabase
     .from('courses')
-    .insert({
-      org_id: profile.org_id,
-      title: parsed.data.title,
-      description: parsed.data.description,
-      interval_days_default: parsed.data.interval_days_default,
-      status: 'active',
-    })
+    .insert(payload)
     .select('id')
     .single();
 
   if (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[courses][create][error]', {
+        message: error.message,
+        code: error.code ?? null,
+        details: error.details ?? null,
+        hint: error.hint ?? null,
+      });
+    }
     return { error: error.message ?? 'No se pudo crear el curso.' };
   }
 

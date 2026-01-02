@@ -10,6 +10,11 @@ export default async function LocationDashboardPage({
 }) {
   const { groupSlug, locationSlug } = await params;
   const access = await requireLocationAccess(groupSlug, locationSlug);
+  const isAdmin =
+    access.roles.isGroupAdmin ||
+    access.roles.locationRole === 'location_admin' ||
+    access.roles.locationRole === 'trainer' ||
+    access.roles.locationRole === 'superadmin';
 
   return (
     <div className="space-y-6">
@@ -19,6 +24,16 @@ export default async function LocationDashboardPage({
           {access.group.name} · {access.location.slug}
         </p>
       </header>
+      {isAdmin ? (
+        <div className="mb-6">
+          <Link
+            href={`/${access.group.slug}`}
+            className="inline-flex items-center text-sm text-muted-foreground transition hover:text-foreground"
+          >
+            ← Volver a {access.group.name}
+          </Link>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 md:grid-cols-3">
         <Button asChild variant="outline">

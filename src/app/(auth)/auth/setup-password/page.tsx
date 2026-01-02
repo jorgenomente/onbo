@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 
-import SetPasswordClient from '../../../auth/set-password/set-password-client';
+import SetupPasswordClient from './SetupPasswordClient';
 
 export default function SetupPasswordPage() {
   return (
@@ -16,7 +16,7 @@ export default function SetupPasswordPage() {
         </div>
       }
     >
-      <SetPasswordClient />
+      <SetupPasswordClient />
     </Suspense>
   );
 }

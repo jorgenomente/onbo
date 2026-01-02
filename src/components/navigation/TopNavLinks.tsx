@@ -76,9 +76,7 @@ export default function TopNavLinks({ role }: TopNavLinksProps) {
           <Link href={`${basePath}/members`} className="transition hover:text-foreground">
             Miembros
           </Link>
-          <Link href={`${basePath}/invites`} className="transition hover:text-foreground">
-            Invitaciones
-          </Link>
+          {/* Invitaciones ahora vive dentro de /members */}
         </>
       );
     }

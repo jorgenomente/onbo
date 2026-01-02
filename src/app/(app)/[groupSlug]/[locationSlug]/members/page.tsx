@@ -8,6 +8,10 @@ import { requireLocationAccess } from '@/server/tenancy/requireLocationAccess';
 import { getUserEmailsByIds } from '@/server/tenancy/getUserEmailsByIds';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import InviteForm from '@/features/invites/components/InviteForm';
+import LocationInvitesTable from '@/features/invites/components/LocationInvitesTable';
+import { getLocationInvites } from '@/features/invites/queries';
+import { mergeMemberLifecycle } from '@/features/members/mergeLifecycle';
 
 function parseAllowlist(raw: string | undefined) {
   if (!raw) {
@@ -54,12 +58,53 @@ function toNumber(value: unknown) {
   return 0;
 }
 
+function inviteBadge(status: string) {
+  switch (status) {
+    case 'pending':
+      return 'Pendiente';
+    case 'accepted_member':
+      return 'Aceptada · Activo';
+    case 'accepted_not_member':
+      return 'Aceptada · Sin activar';
+    case 'pending_but_member':
+      return 'Duplicado';
+    case 'revoked':
+      return 'Revocada';
+    default:
+      return 'Revisar';
+  }
+}
+
+function activeBadge(status: string) {
+  switch (status) {
+    case 'active_ok':
+      return 'Activo';
+    case 'active_no_invite':
+      return 'Activo · Sin invitacion';
+    case 'active_invite_revoked':
+      return 'Activo · Invitacion revocada';
+    case 'active_invite_pending':
+      return 'Activo · Invitacion pendiente';
+    default:
+      return 'Revisar';
+  }
+}
+
 export default async function LocationMembersPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ groupSlug: string; locationSlug: string }>;
+  searchParams?: Promise<{ tab?: string }>;
 }) {
   const { groupSlug, locationSlug } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const rawTab =
+    typeof resolvedSearchParams?.tab === 'string'
+      ? resolvedSearchParams.tab.toLowerCase()
+      : '';
+  const defaultTab =
+    rawTab === 'invitaciones' || rawTab === 'activos' ? rawTab : 'activos';
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -134,14 +179,55 @@ export default async function LocationMembersPage({
     }
   }
 
+  const invites = await getLocationInvites(location.id);
+  const emailByUserId = new Map<string, string | null>();
+  memberIds.forEach((id) => {
+    emailByUserId.set(id, authUserMap.get(id)?.email ?? null);
+  });
+  const { invitationRows, activeRows, warnings } = mergeMemberLifecycle({
+    invites,
+    memberships: memberships ?? [],
+    emailByUserId,
+  });
+  const inviteStatusById = new Map(
+    invitationRows.map((row) => [row.inviteId, inviteBadge(row.status)]),
+  );
+  const inviteNoteById = new Map(
+    invitationRows
+      .map((row) => {
+        if (row.status === 'accepted_not_member') {
+          return [
+            row.inviteId,
+            'Acepto la invitacion pero no aparece como miembro.',
+          ] as const;
+        }
+        if (row.status === 'pending_but_member') {
+          return [row.inviteId, 'Invitacion duplicada.'] as const;
+        }
+        return null;
+      })
+      .filter((row): row is readonly [string, string] => !!row),
+  );
+  const activeStatusByUserId = new Map(
+    activeRows.map((row) => [row.userId, row.status]),
+  );
+
   const { data: stats, error: statsError } = await supabase.rpc(
     'get_location_member_course_stats',
     { p_location_id: location.id },
   );
 
-  if (statsError && process.env.NODE_ENV !== 'production') {
-    console.error('[members] stats rpc', {
-      message: statsError.message,
+  const hasStatsError =
+    !!statsError &&
+    ((typeof statsError.message === 'string' &&
+      statsError.message.trim().length > 0) ||
+      (typeof statsError.details === 'string' &&
+        statsError.details.trim().length > 0) ||
+      Object.keys(statsError).length > 0);
+
+  if (hasStatsError && process.env.NODE_ENV !== 'production') {
+    console.warn('[members] stats rpc', {
+      message: statsError.message ?? null,
       details: statsError.details ?? null,
     });
   }
@@ -166,13 +252,6 @@ export default async function LocationMembersPage({
     statsByUser.set(row.user_id, existing);
   });
 
-  const { data: invites } = await adminClient
-    .from('location_invites')
-    .select('id, email, role, status, created_at, accepted_at')
-    .eq('location_id', location.id)
-    .order('created_at', { ascending: false });
-  const inviteList = invites ?? [];
-
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -189,13 +268,30 @@ export default async function LocationMembersPage({
         </Button>
       </header>
 
-      <Tabs defaultValue="active" className="space-y-4">
+      {warnings.length ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="font-semibold">
+            {warnings.length} alerta{warnings.length > 1 ? 's' : ''} detectada
+            {warnings.length > 1 ? 's' : ''}
+          </div>
+          <ul className="mt-2 list-disc pl-5 text-xs">
+            {warnings.slice(0, 5).map((warning, index) => (
+              <li key={`${warning.type}-${index}`}>
+                {warning.email ?? warning.user_id ?? 'Usuario'} ·{' '}
+                {warning.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <Tabs defaultValue={defaultTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="active">Activos</TabsTrigger>
-          <TabsTrigger value="invites">Invitados</TabsTrigger>
+          <TabsTrigger value="activos">Activos</TabsTrigger>
+          <TabsTrigger value="invitaciones">Invitaciones</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="active">
+        <TabsContent value="activos">
           <section className="space-y-3">
             {memberIds.length ? (
               <div className="space-y-2 text-sm">
@@ -213,9 +309,17 @@ export default async function LocationMembersPage({
                           emailById.get(member.user_id) ??
                           member.user_id}
                       </Link>
-                      <span className="rounded-full border px-2 py-0.5 text-[10px] font-semibold">
-                        {member.role}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full border px-2 py-0.5 text-[10px] font-semibold">
+                          {member.role}
+                        </span>
+                        <span className="rounded-full border px-2 py-0.5 text-[10px] font-semibold">
+                          {activeBadge(
+                            activeStatusByUserId.get(member.user_id) ??
+                              'active_needs_review',
+                          )}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Ultimo login:{' '}
@@ -308,30 +412,18 @@ export default async function LocationMembersPage({
           </section>
         </TabsContent>
 
-        <TabsContent value="invites">
+        <TabsContent value="invitaciones">
           <section className="space-y-3">
-            {inviteList.length ? (
-              <div className="space-y-2 text-sm">
-                {inviteList.map((invite) => (
-                  <div key={invite.id} className="rounded-lg border px-3 py-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-medium">{invite.email}</p>
-                      <span className="rounded-full border px-2 py-0.5 text-[10px] font-semibold">
-                        {invite.status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {invite.role} · Creado: {formatDate(invite.created_at)} ·
-                      Aceptado: {formatDate(invite.accepted_at)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No hay invitaciones para este local.
-              </p>
-            )}
+            <InviteForm locationId={location.id} />
+            <LocationInvitesTable
+              groupSlug={group.slug}
+              locationSlug={location.slug}
+              locationId={location.id}
+              canManage={canView}
+              showPasswordLink
+              lifecycleLabelByInviteId={inviteStatusById}
+              lifecycleNoteByInviteId={inviteNoteById}
+            />
           </section>
         </TabsContent>
       </Tabs>

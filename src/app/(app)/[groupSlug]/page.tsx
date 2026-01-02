@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/server/supabase/createServiceRoleClient';
 import { requireGroupAccess } from '@/server/tenancy/requireGroupAccess';
+import { Button } from '@/components/ui/button';
 import LocationForm from './location-form';
 
 export default async function GroupDashboardPage({
@@ -14,6 +15,33 @@ export default async function GroupDashboardPage({
   const { groupSlug } = await params;
   const access = await requireGroupAccess(groupSlug);
   const canManageLocations = access.isGroupAdmin || access.isSuperAdmin;
+
+  if (!canManageLocations) {
+    const supabaseAuth = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabaseAuth.auth.getUser();
+
+    if (!user) {
+      redirect('/login');
+    }
+
+    const { data: membership } = await supabaseAuth
+      .from('location_memberships')
+      .select('location_id, locations!inner(slug, group_id)')
+      .eq('user_id', user.id)
+      .eq('locations.group_id', access.group.id)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const locationSlug = membership?.locations?.slug;
+    if (locationSlug) {
+      redirect(`/${access.group.slug}/${locationSlug}`);
+    }
+
+    redirect('/no-access');
+  }
 
   const supabase = access.isSuperAdmin
     ? createServiceRoleClient()
@@ -66,6 +94,14 @@ export default async function GroupDashboardPage({
         <h1 className="text-2xl font-semibold">{access.group.name}</h1>
         <p className="text-sm text-muted-foreground">{access.group.slug}</p>
       </header>
+
+      {canManageLocations ? (
+        <div>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/${access.group.slug}/members`}>Members</Link>
+          </Button>
+        </div>
+      ) : null}
 
       {canManageLocations ? (
         <LocationForm groupId={access.group.id} groupSlug={access.group.slug} />

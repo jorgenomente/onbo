@@ -9,6 +9,7 @@ import { getCurrentProfile, getCurrentUser } from '@/lib/auth';
 import { type Role } from '@/lib/rbac';
 import { logout } from '@/server/actions/logout';
 import { getMyTenancy } from '@/server/tenancy/getMyTenancy';
+import { requireLocationAccess } from '@/server/tenancy/requireLocationAccess';
 import TopNavLinks from '@/components/navigation/TopNavLinks';
 
 export default async function AppLayout({
@@ -36,7 +37,8 @@ export default async function AppLayout({
       ? new URL(rawPath).pathname
       : rawPath.split('?')[0]
     : '';
-  const rootSegment = pathname.split('/').filter(Boolean)[0] ?? '';
+  const segments = pathname.split('/').filter(Boolean);
+  const rootSegment = segments[0] ?? '';
   const legacyGuardRoots = new Set([
     'admin',
     'assignments',
@@ -72,6 +74,23 @@ export default async function AppLayout({
   }
 
   const role = (profile?.role ?? null) as Role | null;
+  let backToGroupLink: { href: string; label: string } | null = null;
+
+  if (rootSegment && !legacyGuardRoots.has(rootSegment) && segments.length >= 2) {
+    const groupSlug = segments[0];
+    const locationSlug = segments[1];
+    const access = await requireLocationAccess(groupSlug, locationSlug);
+    const isAdminInLocation =
+      access.roles.isGroupAdmin ||
+      access.roles.locationRole === 'location_admin' ||
+      access.roles.locationRole === 'trainer';
+    if (isAdminInLocation) {
+      backToGroupLink = {
+        href: `/${access.group.slug}`,
+        label: `← Volver a ${access.group.name}`,
+      };
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,6 +100,14 @@ export default async function AppLayout({
             Onbo
           </Link>
           <nav className="flex items-center gap-4 text-sm text-muted-foreground">
+            {backToGroupLink ? (
+              <Link
+                href={backToGroupLink.href}
+                className="transition hover:text-foreground"
+              >
+                {backToGroupLink.label}
+              </Link>
+            ) : null}
             <TopNavLinks role={role} />
             <div className="flex flex-col items-end text-xs text-muted-foreground">
               <span className="font-medium text-foreground">

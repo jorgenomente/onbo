@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -9,9 +9,9 @@ import { createServiceRoleClient } from '@/server/supabase/createServiceRoleClie
 
 const createSchema = z.object({
   locationId: z.string().uuid(),
-  title: z.string().trim().min(1).max(120),
-  description: z.string().trim().max(500).optional().nullable(),
-  status: z.enum(['draft', 'published']).optional(),
+  groupSlug: z.string().trim().min(1),
+  locationSlug: z.string().trim().min(1),
+  title: z.string().trim().min(1).max(120).optional(),
 });
 
 function parseAllowlist(raw: string | undefined) {
@@ -24,14 +24,14 @@ function parseAllowlist(raw: string | undefined) {
     .filter(Boolean);
 }
 
-export async function createModuleForLocation(input: {
-  locationId: string;
-  title: string;
-  description?: string | null;
-  status?: 'draft' | 'published';
-  revalidatePathname?: string;
-}) {
-  const parsed = createSchema.safeParse(input);
+export async function createModuleForLocationAndRedirect(formData: FormData) {
+  const parsed = createSchema.safeParse({
+    locationId: formData.get('location_id'),
+    groupSlug: formData.get('group_slug'),
+    locationSlug: formData.get('location_slug'),
+    title: formData.get('title') || 'Nuevo curso',
+  });
+
   if (!parsed.success) {
     throw new Error('Datos invalidos.');
   }
@@ -42,7 +42,7 @@ export async function createModuleForLocation(input: {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error('No autorizado.');
+    redirect('/login');
   }
 
   const allowlist = parseAllowlist(process.env.ONBO_SUPERADMIN_EMAILS);
@@ -50,6 +50,7 @@ export async function createModuleForLocation(input: {
     !!user.email && allowlist.includes(user.email.toLowerCase());
   const profile = await getCurrentProfile();
   const dataClient = isSuperAdmin ? createServiceRoleClient() : supabase;
+
   const { data: location } = await dataClient
     .from('locations')
     .select('id, group_id')
@@ -90,24 +91,18 @@ export async function createModuleForLocation(input: {
     .insert({
       org_id: profile?.org_id ?? null,
       group_id: location.group_id,
-      location_id: parsed.data.locationId,
-      title: parsed.data.title,
-      description: parsed.data.description ?? null,
-      status: parsed.data.status ?? 'draft',
+      location_id: location.id,
+      title: parsed.data.title ?? 'Nuevo curso',
+      status: 'draft',
     })
     .select('id')
     .single();
 
   if (error || !data) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('[modules] create for location', error);
-    }
     throw new Error(error?.message ?? 'No se pudo crear el curso.');
   }
 
-  if (input.revalidatePathname) {
-    revalidatePath(input.revalidatePathname);
-  }
-
-  return data.id;
+  redirect(
+    `/${parsed.data.groupSlug}/${parsed.data.locationSlug}/courses/${data.id}?view=builder`,
+  );
 }

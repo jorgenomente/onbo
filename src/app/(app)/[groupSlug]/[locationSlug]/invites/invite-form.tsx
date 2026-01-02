@@ -13,6 +13,7 @@ type InviteFormProps = {
 
 export default function InviteForm({ locationId }: InviteFormProps) {
   const router = useRouter();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'trainer' | 'employee'>('employee');
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +32,7 @@ export default function InviteForm({ locationId }: InviteFormProps) {
           email,
           role,
         });
+        setName('');
         setEmail('');
         setRole('employee');
         if (result.mode === 'assigned_existing') {
@@ -49,6 +51,13 @@ export default function InviteForm({ locationId }: InviteFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border p-4">
+      <Input
+        name="name"
+        type="text"
+        placeholder="Nombre del empleado"
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
       <Input
         name="email"
         type="email"

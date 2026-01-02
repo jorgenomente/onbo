@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { z } from 'zod';
 
-import { requireSuperAdmin } from '@/server/auth/requireSuperAdmin';
 import { createServiceRoleClient } from '@/server/supabase/createServiceRoleClient';
 import { getUserEmailsByIds } from '@/server/superadmin/getUserEmailsByIds';
+import { requireGroupAccessById } from '@/server/tenancy/requireGroupAccessById';
 import { Button } from '@/components/ui/button';
 import LocationForm from '../../location-form';
 import GroupAdminForm from './group-admin-form';
@@ -19,23 +19,16 @@ export default async function SuperadminGroupDetailPage({
   params: Promise<{ groupId: string }>;
 }) {
   const { groupId } = await params;
-  await requireSuperAdmin();
 
   const parsedGroupId = groupIdSchema.safeParse(groupId);
   if (!parsedGroupId.success) {
     notFound();
   }
 
-  const supabase = createServiceRoleClient();
-  const { data: group } = await supabase
-    .from('groups')
-    .select('id, name, slug')
-    .eq('id', parsedGroupId.data)
-    .maybeSingle();
+  const access = await requireGroupAccessById(parsedGroupId.data);
+  const group = access.group;
 
-  if (!group) {
-    notFound();
-  }
+  const supabase = createServiceRoleClient();
 
   const { data: locations } = await supabase
     .from('locations')
