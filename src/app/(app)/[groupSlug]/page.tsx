@@ -35,7 +35,10 @@ export default async function GroupDashboardPage({
       .limit(1)
       .maybeSingle();
 
-    const locationSlug = membership?.locations?.slug;
+    const locationRecord = Array.isArray(membership?.locations)
+      ? membership.locations[0]
+      : membership?.locations;
+    const locationSlug = locationRecord?.slug;
     if (locationSlug) {
       redirect(`/${access.group.slug}/${locationSlug}`);
     }

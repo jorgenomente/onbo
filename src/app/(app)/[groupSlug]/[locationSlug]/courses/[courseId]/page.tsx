@@ -188,7 +188,9 @@ export default async function LocationCourseDetailPage({
       });
     }
 
-    module = courseModule?.modules ?? null;
+    module = Array.isArray(courseModule?.modules)
+      ? courseModule.modules[0] ?? null
+      : courseModule?.modules ?? null;
 
     if (!module) {
       notFound();
@@ -223,7 +225,7 @@ export default async function LocationCourseDetailPage({
   }> = [];
 
   if (isEmployeePreview) {
-    const { data: unitRows } = await dataClient
+    const { data: unitRows } = await supabase
       .from('module_units')
       .select('id, title, order_index')
       .eq('module_id', module.id)

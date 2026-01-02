@@ -125,10 +125,19 @@ export async function resendInviteByUserId(input: {
     );
   }
 
+  const inviteLink =
+    inviteResponse.data &&
+    typeof inviteResponse.data === 'object' &&
+    'properties' in inviteResponse.data
+      ? (
+          inviteResponse.data as { properties?: { action_link?: string } }
+        ).properties?.action_link ?? null
+      : null;
+
   if (process.env.NODE_ENV !== 'production') {
     console.log('[onbo] invite link', {
       email,
-      link: inviteResponse.data?.properties?.action_link ?? null,
+      link: inviteLink,
     });
   }
 
@@ -136,6 +145,6 @@ export async function resendInviteByUserId(input: {
     ok: true,
     email,
     mode: 'invite',
-    inviteLink: inviteResponse.data?.properties?.action_link ?? null,
+    inviteLink,
   };
 }

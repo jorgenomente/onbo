@@ -13,7 +13,13 @@ import { Label } from '@/components/ui/label';
 export default function SetPasswordClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = useMemo(() => createRecoveryBrowserClient(), []);
+  const supabase = useMemo(() => {
+    const client = createRecoveryBrowserClient();
+    if (!client) {
+      throw new Error('No se pudo iniciar la sesión.');
+    }
+    return client;
+  }, []);
 
   const inviteId =
     searchParams.get('inviteId') ?? searchParams.get('invite_id');
@@ -34,10 +40,6 @@ export default function SetPasswordClient() {
 
     async function hydrateSession() {
       try {
-        if (!supabase) {
-          throw new Error('No se pudo iniciar la sesión.');
-        }
-
         const url = new URL(window.location.href);
         const code = url.searchParams.get('code');
         const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));

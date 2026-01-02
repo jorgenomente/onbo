@@ -85,8 +85,17 @@ export async function inviteGroupAdminByEmail(input: {
 
   revalidatePath(`/onbo/groups/${parsed.data.groupId}`);
 
+  const inviteLink =
+    inviteResponse.data &&
+    typeof inviteResponse.data === 'object' &&
+    'properties' in inviteResponse.data
+      ? (
+          inviteResponse.data as { properties?: { action_link?: string } }
+        ).properties?.action_link ?? null
+      : null;
+
   return {
     ok: true,
-    inviteLink: inviteResponse.data?.properties?.action_link ?? null,
+    inviteLink,
   };
 }

@@ -192,22 +192,18 @@ export default async function LocationMembersPage({
   const inviteStatusById = new Map(
     invitationRows.map((row) => [row.inviteId, inviteBadge(row.status)]),
   );
-  const inviteNoteById = new Map(
-    invitationRows
-      .map((row) => {
-        if (row.status === 'accepted_not_member') {
-          return [
-            row.inviteId,
-            'Acepto la invitacion pero no aparece como miembro.',
-          ] as const;
-        }
-        if (row.status === 'pending_but_member') {
-          return [row.inviteId, 'Invitacion duplicada.'] as const;
-        }
-        return null;
-      })
-      .filter((row): row is readonly [string, string] => !!row),
+  const inviteNoteEntries: Array<[string, string]> = invitationRows.flatMap(
+    (row) => {
+      if (row.status === 'accepted_not_member') {
+        return [[row.inviteId, 'Acepto la invitacion pero no aparece como miembro.']];
+      }
+      if (row.status === 'pending_but_member') {
+        return [[row.inviteId, 'Invitacion duplicada.']];
+      }
+      return [];
+    },
   );
+  const inviteNoteById = new Map(inviteNoteEntries);
   const activeStatusByUserId = new Map(
     activeRows.map((row) => [row.userId, row.status]),
   );

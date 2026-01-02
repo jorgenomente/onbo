@@ -20,13 +20,8 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  const headerList = headers();
-  const getHeader = (key: string) => {
-    if (headerList && typeof (headerList as Headers).get === 'function') {
-      return (headerList as Headers).get(key);
-    }
-    return (headerList as Record<string, string | undefined>)?.[key] ?? null;
-  };
+  const headerList = await headers();
+  const getHeader = (key: string) => headerList.get(key);
   const rawPath =
     getHeader('x-invoke-path') ??
     getHeader('x-matched-path') ??

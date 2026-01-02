@@ -35,6 +35,19 @@ export default function UnitsPanel({
   basePath,
   locationId,
 }: UnitsPanelProps) {
+  const createUnitAction = async (formData: FormData) => {
+    'use server';
+    await createUnit(formData);
+  };
+  const reorderUnitsAction = async (formData: FormData) => {
+    'use server';
+    await reorderUnits(formData);
+  };
+  const updateUnitAction = async (formData: FormData) => {
+    'use server';
+    await updateUnit(formData);
+  };
+
   return (
     <Card className="h-fit">
       <CardHeader>
@@ -43,7 +56,7 @@ export default function UnitsPanel({
       </CardHeader>
       <CardContent className="space-y-4">
         <form
-          action={createUnit}
+          action={createUnitAction}
           className="flex items-center gap-2"
         >
           <input type="hidden" name="module_id" value={moduleId} />
@@ -93,7 +106,7 @@ export default function UnitsPanel({
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <form
-                      action={reorderUnits}
+                      action={reorderUnitsAction}
                     >
                       <input type="hidden" name="module_id" value={moduleId} />
                       {locationId ? (
@@ -111,7 +124,7 @@ export default function UnitsPanel({
                       </Button>
                     </form>
                     <form
-                      action={reorderUnits}
+                      action={reorderUnitsAction}
                     >
                       <input type="hidden" name="module_id" value={moduleId} />
                       {locationId ? (
@@ -129,7 +142,7 @@ export default function UnitsPanel({
                       </Button>
                     </form>
                     <form
-                      action={updateUnit}
+                      action={updateUnitAction}
                       className="flex flex-1 gap-2"
                     >
                       <input type="hidden" name="module_id" value={moduleId} />

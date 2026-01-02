@@ -654,6 +654,14 @@ export function QuizQuestionEditor({
     setSuccess(null);
   }
 
+  function handleOptionChange(index: number, value: string) {
+    setOptions((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);

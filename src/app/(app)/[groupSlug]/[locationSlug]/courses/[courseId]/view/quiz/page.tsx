@@ -107,7 +107,7 @@ export default async function CourseQuizPlayerPage({
         <form
           action={async (formData) => {
             'use server';
-            const answers: Record<string, number> = {};
+            const answers: Record<string, unknown> = {};
             questionsList.forEach((question) => {
               if (question.type === 'mcq') {
                 const value = formData.get(`question_${question.id}`);

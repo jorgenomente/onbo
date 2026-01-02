@@ -117,6 +117,11 @@ export default async function LessonEditorPage({
   const basePath = `/${group.slug}/${location.slug}/courses/${module.id}/lessons`;
   const contentText = JSON.stringify(lesson.content_json ?? [], null, 2);
 
+  const updateLessonAction = async (formData: FormData) => {
+    'use server';
+    await updateLesson(formData);
+  };
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -129,7 +134,7 @@ export default async function LessonEditorPage({
         </Button>
       </header>
 
-      <form action={updateLesson} className="space-y-4">
+      <form action={updateLessonAction} className="space-y-4">
         <input type="hidden" name="lesson_id" value={lesson.id} />
         <input type="hidden" name="course_id" value={module.id} />
         <input type="hidden" name="location_id" value={location.id} />

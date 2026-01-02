@@ -36,6 +36,19 @@ export default function LessonsPanel({
   activeLessonId,
   basePath,
 }: LessonsPanelProps) {
+  const createLessonAction = async (formData: FormData) => {
+    'use server';
+    await createLesson(formData);
+  };
+  const reorderLessonsAction = async (formData: FormData) => {
+    'use server';
+    await reorderLessons(formData);
+  };
+  const updateLessonAction = async (formData: FormData) => {
+    'use server';
+    await updateLesson(formData);
+  };
+
   return (
     <Card className="h-fit">
       <CardHeader>
@@ -47,7 +60,7 @@ export default function LessonsPanel({
       <CardContent className="space-y-4">
         {unit ? (
           <form
-            action={createLesson}
+            action={createLessonAction}
             className="flex items-center gap-2"
           >
             <input type="hidden" name="module_id" value={moduleId} />
@@ -91,7 +104,7 @@ export default function LessonsPanel({
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <form
-                      action={reorderLessons}
+                      action={reorderLessonsAction}
                     >
                       <input type="hidden" name="lesson_id" value={lesson.id} />
                       <input type="hidden" name="course_id" value={moduleId} />
@@ -109,7 +122,7 @@ export default function LessonsPanel({
                       </Button>
                     </form>
                     <form
-                      action={reorderLessons}
+                      action={reorderLessonsAction}
                     >
                       <input type="hidden" name="lesson_id" value={lesson.id} />
                       <input type="hidden" name="course_id" value={moduleId} />
@@ -127,7 +140,7 @@ export default function LessonsPanel({
                       </Button>
                     </form>
                     <form
-                      action={updateLesson}
+                      action={updateLessonAction}
                       className="flex flex-1 gap-2"
                     >
                       <input type="hidden" name="lesson_id" value={lesson.id} />
